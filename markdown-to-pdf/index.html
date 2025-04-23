@@ -129,7 +129,8 @@
 
     <!-- Include the required libraries -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Use a more stable version of html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 
     <script>
         // Get document elements
@@ -163,20 +164,41 @@
                 return;
             }
 
-            // Clone the preview div for PDF generation
-            const pdfContent = markdownPreview.cloneNode(true);
+            // Create a new div that we'll use for PDF generation
+            // This helps avoid issues with the html2pdf cloning process
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = markdownPreview.innerHTML;
+            tempDiv.classList.add('preview');
             
-            // Configure html2pdf options
+            // Add the temp div to the body but make it invisible
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.left = '-9999px';
+            document.body.appendChild(tempDiv);
+            
+            // Configure html2pdf options with more reliable settings
             const options = {
-                margin: [15, 15],
+                margin: [10, 10],
                 filename: 'document.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: { 
+                    scale: 1.5,  // Reduced scale for better reliability
+                    useCORS: true,
+                    logging: true,
+                    letterRendering: true
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait',
+                    compress: true
+                }
             };
 
             // Generate and download the PDF
-            html2pdf().set(options).from(pdfContent).save();
+            html2pdf().from(tempDiv).set(options).save().then(() => {
+                // Remove the temp div after PDF generation
+                document.body.removeChild(tempDiv);
+            });
         }
 
         // Add sample markdown on page load if editor is empty
